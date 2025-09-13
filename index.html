@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Learning Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #4e73df;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    /* ---------- SLIDER ---------- */
+    .slider {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+    }
+    .slides {
+      display: flex;
+      width: 300%;
+      animation: slide 12s infinite;
+    }
+    .slides div {
+      width: 100%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: white;
+      font-weight: bold;
+    }
+    .slide1 { background: #4e73df; }
+    .slide2 { background: #1cc88a; }
+    .slide3 { background: #36b9cc; }
+
+    @keyframes slide {
+      0% { transform: translateX(0%); }
+      30% { transform: translateX(0%); }
+      35% { transform: translateX(-100%); }
+      65% { transform: translateX(-100%); }
+      70% { transform: translateX(-200%); }
+      100% { transform: translateX(-200%); }
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+    .upload-box {
+      border: 2px dashed #4e73df;
+      padding: 20px;
+      text-align: center;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .upload-box:hover {
+      background: #f4f7ff;
+    }
+    #preview {
+      max-width: 100%;
+      margin-top: 15px;
+      border-radius: 8px;
+    }
+    pre {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .recommendations {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .rec-card {
+      flex: 1;
+      min-width: 200px;
+      background: #eef3ff;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .rec-card img {
+      width: 50px;
+      margin-bottom: 10px;
+    }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: #4e73df;
+      color: white;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <header>📘 Adaptive Learning Platform</header>
+
+  <!-- Hero Slider -->
+  <div class="slider">
+    <div class="slides">
+      <div class="slide1">📚 Learn Smarter, Not Harder</div>
+      <div class="slide2">🤖 AI-Powered Study Insights</div>
+      <div class="slide3">📊 Track Your Progress Easily</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Upload Section -->
+    <div class="card">
+      <h2>📤 Upload Study Material</h2>
+      <div class="upload-box">
+        <input type="file" id="fileInput" accept="image/*">
+        <p>Upload an image of your notes/slides</p>
+      </div>
+      <img id="preview" style="display:none;">
+    </div>
+
+    <!-- Extracted Text -->
+    <div class="card">
+      <h2>📑 Extracted Text</h2>
+      <pre id="extractedText">No text extracted yet...</pre>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <h2>📚 Study Recommendations</h2>
+      <div class="recommendations">
+        <div class="rec-card">
+          <img src="https://img.icons8.com/color/96/000000/book.png" alt="Book">
+          <p><b>Focus on Definitions</b><br>Revise all highlighted terms and key concepts.</p>
+        </div>
+        <div class="rec-card">
+          <img src="https://img.icons8.com/color/96/000000/task.png" alt="Tasks">
+          <p><b>Practice Problems</b><br>Work on at least 5 exercises daily.</p>
+        </div>
+        <div class="rec-card">
+          <img src="https://img.icons8.com/color/96/000000/presentation.png" alt="Presentation">
+          <p><b>Visual Learning</b><br>Review diagrams and flowcharts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Chart -->
+    <div class="card">
+      <h2>📊 Learning Progress Dashboard</h2>
+      <canvas id="progressChart"></canvas>
+    </div>
+  </div>
+
+  <footer>Made with ❤ for Smarter Learning</footer>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("preview");
+    const extractedTextElement = document.getElementById("extractedText");
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+
+        // OCR with Tesseract.js
+        extractedTextElement.textContent = "⏳ Extracting text, please wait...";
+        const { data: { text } } = await Tesseract.recognize(file, 'eng');
+        extractedTextElement.textContent = text || "⚠ No readable text found in the image.";
+      }
+    });
+
+    // Progress Chart
+    const ctx = document.getElementById("progressChart").getContext("2d");
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Math", "AI", "DBMS", "OS"],
+        datasets: [{
+          label: "Completion %",
+          data: [70, 40, 55, 30],
+          backgroundColor: ["#4e73df", "#1cc88a", "#36b9cc", "#f6c23e"]
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
+
